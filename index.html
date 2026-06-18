@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pause</title>
+<style>
+@font-face {
+  font-family: 'Rye';
+  src: local('Rye');
+}
+
+:root{
+  --bg-dark: #232220;
+  --red-main: #d4150a;
+  --red-deep: #a30d04;
+  --red-shadow: #5c0702;
+  --paper-crack: #1a1918;
+  --ink: #16130f;
+  --bone: #ddd2bc;
+  --ember: #ff7a1a;
+  --ember-hot: #ffd24a;
+  --smoke: rgba(180,178,172,0.5);
+}
+
+*{ margin:0; padding:0; box-sizing:border-box; }
+
+html,body{
+  width:100%; height:100%;
+  background: var(--bg-dark);
+  overflow:hidden;
+  font-family: 'Oswald', 'Arial Narrow', sans-serif;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Rye&display=swap');
+
+.stage{
+  position:relative;
+  width:100vw;
+  height:100vh;
+  display:flex;
+  background: var(--bg-dark);
+}
+
+/* ---------- background texture (dark grey, no game art) ---------- */
+.stage::before{
+  content:"";
+  position:absolute; inset:0;
+  background:
+    radial-gradient(ellipse at 70% 40%, rgba(255,255,255,0.04), transparent 60%),
+    repeating-linear-gradient(0deg, rgba(0,0,0,0.12) 0px, rgba(0,0,0,0.12) 1px, transparent 2px, transparent 4px);
+  mix-blend-mode: overlay;
+  pointer-events:none;
+}
+
+/* ====================== LEFT RED BANNER ====================== */
+.banner{
+  position:relative;
+  width:min(34vw, 480px);
+  min-width:330px;
+  height:100%;
+  background:
+    linear-gradient(180deg, rgba(0,0,0,0.18), rgba(0,0,0,0.32)),
+    linear-gradient(125deg, var(--red-main) 0%, var(--red-deep) 55%, var(--red-shadow) 100%);
+  box-shadow: inset -40px 0 80px -40px rgba(0,0,0,0.6);
+  padding: 6vh 2.6vw 6vh 3vw;
+  display:flex;
+  flex-direction:column;
+  justify-content: flex-start;
+  z-index: 3;
+  clip-path: polygon(
+    0 0, 100% 0, 96% 6%, 100% 11%, 95% 17%, 100% 24%,
+    97% 33%, 100% 41%, 94% 49%, 100% 58%,
+    96% 67%, 100% 76%, 95% 85%, 100% 92%, 97% 100%, 0 100%
+  );
+}
+
+.banner::after{
+  /* rough torn fiber texture */
+  content:"";
+  position:absolute; inset:0;
+  background-image:
+    repeating-linear-gradient(115deg, rgba(0,0,0,0.05) 0px, transparent 2px, transparent 6px),
+    repeating-linear-gradient(25deg, rgba(255,255,255,0.03) 0px, transparent 1px, transparent 5px);
+  pointer-events:none;
+}
+
+.money{
+  font-family:'Oswald', sans-serif;
+  font-weight:700;
+  letter-spacing: 1px;
+  font-size: clamp(20px, 2.4vw, 30px);
+  color: var(--ink);
+  text-transform: uppercase;
+}
+
+.divider{
+  height:2px;
+  background: rgba(0,0,0,0.35);
+  margin: 2.4vh 0 3.2vh 0;
+  width: 92%;
+}
+
+.menu-list{
+  display:flex;
+  flex-direction:column;
+  gap: 0.4em;
+  list-style:none;
+  margin-top: 4vh;
+}
+
+.menu-btn{
+  position:relative;
+  align-self:flex-start;
+  background:transparent;
+  border:none;
+  font-family:'Oswald', sans-serif;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:1.5px;
+  font-size: clamp(22px, 3.1vw, 38px);
+  color: var(--ink);
+  cursor:pointer;
+  padding: 0.06em 0.1em;
+  text-align:left;
+  transition: color .15s, transform .15s;
+  filter: drop-shadow(0 1px 0 rgba(255,255,255,0.06));
+}
+
+.menu-btn:hover:not(.broken){
+  color: #2a2520;
+  transform: translateX(6px);
+}
+
+.menu-btn:focus-visible{
+  outline: 2px solid var(--bone);
+  outline-offset: 4px;
+}
+
+.menu-btn .label{
+  position:relative;
+  display:inline-block;
+}
+
+/* crack svg overlay drawn per-button */
+.crack-layer{
+  position:absolute;
+  left:-6%; top:-40%;
+  width:112%; height:180%;
+  pointer-events:none;
+  overflow:visible;
+}
+.crack-layer path{
+  fill:none;
+  stroke: var(--ink);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  opacity:0;
+}
+.crack-layer .hole{
+  fill: var(--paper-crack);
+  stroke: var(--ink);
+  stroke-width: 1.2;
+  opacity:0;
+}
+
+.menu-btn.shot-1 .label{ animation: jolt .22s ease-out; }
+.menu-btn.shot-2 .label{ animation: jolt .22s ease-out; }
+.menu-btn.shot-3 .label{ animation: jolt .22s ease-out; }
+
+@keyframes jolt{
+  0%{ transform: translate(0,0) rotate(0deg); }
+  20%{ transform: translate(-3px,1px) rotate(-1.2deg); }
+  50%{ transform: translate(4px,-1px) rotate(1deg); }
+  100%{ transform: translate(0,0) rotate(0deg); }
+}
+
+.menu-btn.broken{
+  cursor:not-allowed;
+  pointer-events:none;
+}
+.menu-btn.broken .label{
+  animation: crumble 0.9s forwards;
+}
+@keyframes crumble{
+  0%{ opacity:1; filter:none; transform:translateY(0) rotate(0deg); }
+  35%{ opacity:0.85; filter: blur(0.3px); transform: translateY(2px) rotate(-2deg); }
+  100%{ opacity:0; filter: blur(2px); transform: translateY(28px) rotate(8deg); }
+}
+
+.hint{
+  margin-top:auto;
+  color: rgba(20,16,12,0.55);
+  font-size: clamp(11px, 1.1vw, 14px);
+  letter-spacing: 1px;
+  text-transform:uppercase;
+  font-weight:500;
+}
+
+/* edge wear strip */
+.banner-edge{
+  position:absolute;
+  top:0; right:-3px;
+  width:10px; height:100%;
+  background: linear-gradient(90deg, rgba(0,0,0,0.4), transparent);
+  z-index:4;
+}
+
+/* ====================== RIGHT SCENE (revolver) ====================== */
+.scene{
+  position:relative;
+  flex:1;
+  height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  overflow:hidden;
+}
+
+.revolver-anchor{
+  position:absolute;
+  right: -4vw;
+  top: 50%;
+  width: min(72vw, 980px);
+  transform: translateY(-50%);
+}
+
+.revolver-aim{
+  /* rotates to follow the cursor; pivot near the grip/wrist */
+  width:100%;
+  transform-origin: 90% 50%;
+  transition: transform 0.04s linear;
+  will-change: transform;
+}
+
+.revolver-wrap{
+  position:relative;
+  width:100%;
+  filter: drop-shadow(0 10px 30px rgba(0,0,0,0.55));
+  transform-origin: 78% 60%;
+  will-change: transform;
+}
+
+.revolver-wrap img{
+  display:block;
+  width:100%;
+  height:auto;
+  pointer-events:none;
+  user-select:none;
+}
+
+.revolver-wrap.firing{
+  animation: recoil 0.32s cubic-bezier(.2,.9,.3,1);
+}
+
+@keyframes recoil{
+  0%{ transform: translateX(0) rotate(0deg); }
+  12%{ transform: translateX(20px) rotate(-4deg); }
+  30%{ transform: translateX(-7px) rotate(1.4deg); }
+  55%{ transform: translateX(3px) rotate(-0.5deg); }
+  100%{ transform: translateX(0) rotate(0deg); }
+}
+
+.muzzle-flash{
+  position:absolute;
+  width: 130px;
+  height: 130px;
+  left: 4%;
+  top: 26%;
+  transform: translate(-60%,-50%) scale(0.2);
+  opacity:0;
+  pointer-events:none;
+  background: radial-gradient(circle, var(--ember-hot) 0%, var(--ember) 35%, rgba(255,90,20,0.5) 55%, transparent 75%);
+  filter: blur(0.5px);
+  mix-blend-mode: screen;
+}
+
+.muzzle-flash.active{
+  animation: flash 0.18s ease-out;
+}
+@keyframes flash{
+  0%{ opacity:0; transform: translate(-60%,-50%) scale(0.1) rotate(0deg); }
+  18%{ opacity:1; transform: translate(-60%,-50%) scale(1.15) rotate(8deg); }
+  100%{ opacity:0; transform: translate(-60%,-50%) scale(0.4) rotate(20deg); }
+}
+
+.smoke-puff{
+  position:absolute;
+  width:90px; height:90px;
+  border-radius:50%;
+  background: radial-gradient(circle, rgba(210,208,202,0.85) 0%, rgba(190,188,182,0.55) 40%, transparent 75%);
+  left: 2%;
+  top: 24%;
+  opacity:0;
+  pointer-events:none;
+  filter: blur(1px);
+}
+.smoke-puff.active{
+  animation: drift 1.6s ease-out forwards;
+}
+@keyframes drift{
+  0%{ opacity:0.85; transform: translate(0,0) scale(0.5); }
+  40%{ opacity:0.7; transform: translate(-40px,-30px) scale(1.6); }
+  100%{ opacity:0; transform: translate(-130px,-110px) scale(3.2); }
+}
+
+.smoke-puff-2{
+  position:absolute;
+  width:60px; height:60px;
+  border-radius:50%;
+  background: radial-gradient(circle, rgba(225,223,217,0.8) 0%, rgba(200,198,192,0.45) 45%, transparent 75%);
+  left: 3%;
+  top: 27%;
+  opacity:0;
+  pointer-events:none;
+  filter: blur(0.8px);
+}
+.smoke-puff-2.active{
+  animation: drift2 1.3s ease-out 0.05s forwards;
+}
+@keyframes drift2{
+  0%{ opacity:0.75; transform: translate(0,0) scale(0.4); }
+  45%{ opacity:0.6; transform: translate(-55px,-15px) scale(1.4); }
+  100%{ opacity:0; transform: translate(-150px,-55px) scale(2.8); }
+}
+
+/* tracer line from muzzle to target */
+.tracer{
+  position:fixed;
+  height:2px;
+  background: linear-gradient(90deg, rgba(255,210,90,0.95), rgba(255,140,40,0.15));
+  transform-origin: left center;
+  pointer-events:none;
+  opacity:0;
+  z-index: 50;
+  border-radius: 2px;
+}
+.tracer.active{
+  animation: tracerFly 0.13s linear forwards;
+}
+@keyframes tracerFly{
+  0%{ opacity:0; }
+  10%{ opacity:1; }
+  85%{ opacity:0.9; }
+  100%{ opacity:0; }
+}
+
+/* impact spark at target */
+.impact-spark{
+  position:fixed;
+  width:40px; height:40px;
+  pointer-events:none;
+  z-index:51;
+  transform: translate(-50%,-50%) scale(0);
+  opacity:0;
+}
+.impact-spark.active{
+  animation: spark 0.28s ease-out forwards;
+}
+@keyframes spark{
+  0%{ transform: translate(-50%,-50%) scale(0.2); opacity:1; }
+  60%{ transform: translate(-50%,-50%) scale(1.3); opacity:1; }
+  100%{ transform: translate(-50%,-50%) scale(1.8); opacity:0; }
+}
+
+.shell{
+  position:fixed;
+  width:8px; height:14px;
+  background: linear-gradient(180deg, #c98a2e, #8a5a18);
+  border-radius: 1px;
+  z-index: 49;
+  opacity:0;
+  pointer-events:none;
+}
+.shell.active{
+  animation: eject 0.7s ease-in forwards;
+}
+@keyframes eject{
+  0%{ opacity:1; transform: translate(0,0) rotate(0deg); }
+  100%{ opacity:0; transform: translate(70px, 160px) rotate(420deg); }
+}
+
+.vignette{
+  position:absolute; inset:0;
+  background: radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,0.55) 100%);
+  pointer-events:none;
+  z-index:2;
+}
+
+.footer-controls{
+  position:absolute;
+  bottom: 4vh;
+  right: 4vw;
+  display:flex;
+  gap: 2.2vw;
+  color: rgba(221,210,188,0.85);
+  font-size: clamp(11px, 1.1vw, 15px);
+  letter-spacing:1px;
+  text-transform:uppercase;
+  z-index:5;
+  align-items:center;
+}
+.footer-controls .icon{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:1.4em; height:1.4em;
+  border:1.5px solid rgba(221,210,188,0.85);
+  border-radius:50%;
+  margin-right:0.4em;
+  font-size:0.85em;
+}
+
+.reset-note{
+  position:absolute;
+  top: 3vh;
+  right: 3vw;
+  color: rgba(221,210,188,0.5);
+  font-size: 11px;
+  letter-spacing:0.5px;
+  text-transform:uppercase;
+  z-index:5;
+  max-width: 240px;
+  text-align:right;
+  line-height:1.5;
+}
+</style>
+</head>
+<body>
+
+<div class="stage">
+
+  <section class="banner" aria-label="Menu de pausa">
+    <div class="money">Money: $702</div>
+    <div class="divider"></div>
+
+    <ul class="menu-list" id="menuList">
+      <li><button class="menu-btn" data-id="map"><span class="label">Map</span><svg class="crack-layer" viewBox="0 0 100 60"></svg></button></li>
+      <li><button class="menu-btn" data-id="help"><span class="label">Help</span><svg class="crack-layer" viewBox="0 0 100 60"></svg></button></li>
+      <li><button class="menu-btn" data-id="progress"><span class="label">Progress</span><svg class="crack-layer" viewBox="0 0 100 60"></svg></button></li>
+      <li><button class="menu-btn" data-id="player"><span class="label">Player</span><svg class="crack-layer" viewBox="0 0 100 60"></svg></button></li>
+      <li><button class="menu-btn" data-id="story"><span class="label">Story</span><svg class="crack-layer" viewBox="0 0 100 60"></svg></button></li>
+      <li><button class="menu-btn" data-id="online"><span class="label">Online</span><svg class="crack-layer" viewBox="0 0 100 60"></svg></button></li>
+      <li><button class="menu-btn" data-id="social"><span class="label">Social Club</span><svg class="crack-layer" viewBox="0 0 100 60"></svg></button></li>
+      <li><button class="menu-btn" data-id="settings"><span class="label">Settings</span><svg class="crack-layer" viewBox="0 0 100 60"></svg></button></li>
+    </ul>
+
+    <div class="hint">Atire em uma opção para vê-la quebrar</div>
+    <div class="banner-edge"></div>
+  </section>
+
+  <section class="scene">
+    <div class="vignette"></div>
+    <div class="revolver-anchor" id="revolverAnchor">
+      <div class="revolver-aim" id="revolverAim">
+        <div class="revolver-wrap" id="revolverWrap">
+          <div class="muzzle-flash" id="muzzleFlash"></div>
+          <div class="smoke-puff" id="smokePuff"></div>
+          <div class="smoke-puff-2" id="smokePuff2"></div>
+          <img src="Revolver img.png" alt="Revólver" id="revolverImg">
+        </div>
+      </div>
+    </div>
+    <div class="reset-note">Recarregue a página para restaurar os botões</div>
+    <div class="footer-controls">
+      <span><span class="icon">✕</span>Selecionar</span>
+      <span><span class="icon">●</span>Voltar</span>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const muzzleFlash = document.getElementById('muzzleFlash');
+const smokePuff = document.getElementById('smokePuff');
+const smokePuff2 = document.getElementById('smokePuff2');
+const revolverWrap = document.getElementById('revolverWrap');
+const revolverAim = document.getElementById('revolverAim');
+const revolverAnchor = document.getElementById('revolverAnchor');
+const revolverImg = document.getElementById('revolverImg');
+const buttons = document.querySelectorAll('.menu-btn');
+
+const hitCounts = {};
+buttons.forEach(b => hitCounts[b.dataset.id] = 0);
+
+function randomCrackPath(seed){
+  // generates a jagged crack line from center outward
+  const cx = 50, cy = 30;
+  let d = `M ${cx} ${cy}`;
+  const branches = 2 + Math.floor(Math.random()*2);
+  let paths = [];
+  for(let b=0; b<branches; b++){
+    let x = cx, y = cy;
+    let path = `M ${x} ${y}`;
+    const steps = 3 + Math.floor(Math.random()*3);
+    const angle = Math.random()*Math.PI*2;
+    for(let s=0; s<steps; s++){
+      const dist = 8 + Math.random()*14;
+      x += Math.cos(angle + (Math.random()-0.5)*1.2) * dist;
+      y += Math.sin(angle + (Math.random()-0.5)*1.2) * dist * 0.6;
+      path += ` L ${x.toFixed(1)} ${y.toFixed(1)}`;
+    }
+    paths.push(path);
+  }
+  return paths;
+}
+
+function addBulletHole(btn, localX, localY){
+  const svg = btn.querySelector('.crack-layer');
+  const rect = btn.getBoundingClientRect();
+  // convert pixel click position to viewBox percentage coords
+  const vx = (localX / rect.width) * 100;
+  const vy = (localY / rect.height) * 60;
+
+  // crack lines
+  const paths = randomCrackPath();
+  paths.forEach((d, i) => {
+    const p = document.createElementNS('http://www.w3.org/2000/svg','path');
+    // shift crack to click position
+    const shifted = d.replace(/M ([\d.]+) ([\d.]+)/, `M ${vx.toFixed(1)} ${vy.toFixed(1)}`);
+    p.setAttribute('d', shifted);
+    p.style.transition = 'opacity 0.25s';
+    svg.appendChild(p);
+    requestAnimationFrame(()=>{ p.style.opacity = '0.85'; });
+  });
+
+  // bullet hole circle
+  const hole = document.createElementNS('http://www.w3.org/2000/svg','ellipse');
+  hole.setAttribute('cx', vx.toFixed(1));
+  hole.setAttribute('cy', vy.toFixed(1));
+  hole.setAttribute('rx', 2.6);
+  hole.setAttribute('ry', 2.2);
+  hole.setAttribute('class','hole');
+  hole.style.transition = 'opacity 0.2s';
+  svg.appendChild(hole);
+  requestAnimationFrame(()=>{ hole.style.opacity = '1'; });
+}
+
+function spawnTracer(fromX, fromY, toX, toY){
+  const tracer = document.createElement('div');
+  tracer.className = 'tracer';
+  const dx = toX - fromX, dy = toY - fromY;
+  const len = Math.sqrt(dx*dx + dy*dy);
+  const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+  tracer.style.width = len + 'px';
+  tracer.style.left = fromX + 'px';
+  tracer.style.top = fromY + 'px';
+  tracer.style.transform = `rotate(${angle}deg)`;
+  document.body.appendChild(tracer);
+  requestAnimationFrame(()=> tracer.classList.add('active'));
+  setTimeout(()=> tracer.remove(), 250);
+}
+
+function spawnImpact(x, y){
+  const spark = document.createElement('div');
+  spark.className = 'impact-spark';
+  spark.style.left = x + 'px';
+  spark.style.top = y + 'px';
+  spark.style.background = 'radial-gradient(circle, #ffe9b0 0%, #ff9a2e 40%, rgba(120,30,10,0.4) 65%, transparent 80%)';
+  spark.style.borderRadius = '50%';
+  document.body.appendChild(spark);
+  requestAnimationFrame(()=> spark.classList.add('active'));
+  setTimeout(()=> spark.remove(), 320);
+}
+
+function spawnShell(){
+  const rect = revolverWrap.getBoundingClientRect();
+  const shell = document.createElement('div');
+  shell.className = 'shell';
+  shell.style.left = (rect.left + rect.width*0.18) + 'px';
+  shell.style.top = (rect.top + rect.height*0.32) + 'px';
+  document.body.appendChild(shell);
+  requestAnimationFrame(()=> shell.classList.add('active'));
+  setTimeout(()=> shell.remove(), 750);
+}
+
+function fireAt(btn, clickEvt){
+  if(btn.classList.contains('broken')) return;
+
+  const id = btn.dataset.id;
+  hitCounts[id] = (hitCounts[id]||0) + 1;
+
+  const btnRect = btn.getBoundingClientRect();
+  const localX = clickEvt.clientX - btnRect.left;
+  const localY = clickEvt.clientY - btnRect.top;
+  const targetX = clickEvt.clientX;
+  const targetY = clickEvt.clientY;
+
+  // muzzle origin point (approx revolver tip on screen)
+  const muzzleRect = muzzleFlash.getBoundingClientRect();
+  const originX = muzzleRect.left + muzzleRect.width*0.18;
+  const originY = muzzleRect.top + muzzleRect.height*0.5;
+
+  // fire sequence
+  revolverWrap.classList.remove('firing');
+  void revolverWrap.offsetWidth;
+  revolverWrap.classList.add('firing');
+
+  muzzleFlash.classList.remove('active');
+  void muzzleFlash.offsetWidth;
+  muzzleFlash.classList.add('active');
+
+  smokePuff.classList.remove('active');
+  void smokePuff.offsetWidth;
+  smokePuff.classList.add('active');
+
+  smokePuff2.classList.remove('active');
+  void smokePuff2.offsetWidth;
+  smokePuff2.classList.add('active');
+
+  spawnShell();
+
+  setTimeout(()=>{
+    spawnTracer(originX, originY, targetX, targetY);
+  }, 40);
+
+  setTimeout(()=>{
+    spawnImpact(targetX, targetY);
+    addBulletHole(btn, localX, localY);
+
+    btn.classList.remove('shot-1','shot-2','shot-3');
+    const shotClass = 'shot-' + Math.min(hitCounts[id], 3);
+    btn.classList.add(shotClass);
+
+    if(hitCounts[id] >= 3){
+      setTimeout(()=>{
+        btn.classList.add('broken');
+        btn.setAttribute('aria-disabled','true');
+        btn.setAttribute('tabindex','-1');
+      }, 150);
+    }
+  }, 150);
+}
+
+// ---------- revolver aims at cursor ----------
+// pivot point on screen = the grip area, matched to transform-origin (82% 62%) of revolver-aim
+let pivotX = 0, pivotY = 0;
+const MAX_ANGLE = 16; // degrees of vertical tilt allowed in either direction
+
+function updatePivot(){
+  const rect = revolverAnchor.getBoundingClientRect();
+  pivotX = rect.left + rect.width * 0.82;
+  pivotY = rect.top + rect.height * 0.62;
+}
+updatePivot();
+window.addEventListener('resize', updatePivot);
+
+function onPointerMove(e){
+  const dx = pivotX - e.clientX;
+  const dy = pivotY - e.clientY;
+
+  let angle = Math.atan2(dy, dx) * (180 / Math.PI);
+
+  angle = Math.max(-20, Math.min(20, angle));
+
+  revolverAim.style.transform = `rotate(${angle}deg)`;
+}
+
+window.addEventListener('mousemove', onPointerMove);
+window.addEventListener('scroll', updatePivot);
+
+buttons.forEach(btn => {
+  btn.addEventListener('click', (e) => fireAt(btn, e));
+  btn.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter' || e.key === ' '){
+      e.preventDefault();
+      const rect = btn.getBoundingClientRect();
+      fireAt(btn, { clientX: rect.left + rect.width/2, clientY: rect.top + rect.height/2 });
+    }
+  });
+});
+
+</script>
+</body>
+</html>
